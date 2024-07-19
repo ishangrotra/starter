@@ -1,1 +1,5 @@
+newspaper3k
+langdetect
 appwrite
+google-generativeai
+pandas 
