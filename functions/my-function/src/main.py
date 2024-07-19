@@ -1,37 +1,125 @@
-from appwrite.client import Client
+import google.generativeai as genai
 import os
+import time
+from newspaper import Article
+from newspaper.article import ArticleException
+from langdetect import detect
+import pandas as pd
+import requests
+import json
+import google.generativeai as genai
+from appwrite.client import Client
+from appwrite.services.functions import Functions
 
-
-# This is your Appwrite function
-# It's executed each time we get a request
 def main(context):
-    # Why not try the Appwrite SDK?
-    #
-    # client = (
-    #     Client()
-    #     .set_endpoint("https://cloud.appwrite.io/v1")
-    #     .set_project(os.environ["APPWRITE_FUNCTION_PROJECT_ID"])
-    #     .set_key(os.environ["APPWRITE_API_KEY"])
-    # )
+    # Initialize Appwrite client
+    client = Client()
+    client.set_endpoint(context.env['APPWRITE_ENDPOINT'])  
+    client.set_project(context.env['APPWRITE_PROJECT_ID'])
+    client.set_key(context.env['APPWRITE_API_KEY'])
 
-    # You can log messages to the console
-    context.log("Hello, Logs!")
+    # Configuration
+    bing_subscription_key = context.env['BING_SUBSCRIPTION_KEY']
+    google_api_key = context.env['GOOGLE_API_KEY']
+    search_url = "https://api.bing.microsoft.com/v7.0/news/search"
+    
+    # Get parameters from request
+    data = json.loads(context.req.body)
+    search_term = data.get('search_term', 'Microsoft')
+    target_date = data.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
 
-    # If something goes wrong, log an error
-    context.error("Hello, Errors!")
+    def scrape_article(url, target_date, max_retries=2):
+        retry_count = 0
+        article_data = []
 
-    # The `ctx.req` object contains the request data
-    if context.req.method == "GET":
-        # Send a response with the res object helpers
-        # `ctx.res.send()` dispatches a string back to the client
-        return context.res.send("Hello, World!")
+        while retry_count < max_retries:
+            try:
+                article = Article(url, language='en')
+                article.download()
+                article.parse()
 
-    # `ctx.res.json()` is a handy helper for sending JSON
-    return context.res.json(
-        {
-            "motto": "Build like a team of hundreds_",
-            "learn": "https://appwrite.io/docs",
-            "connect": "https://appwrite.io/discord",
-            "getInspired": "https://builtwith.appwrite.io",
-        }
-    )
+                if len(article.text) < 10:
+                    break
+
+                article_language = detect(article.text)
+                if article_language == 'en':
+                    if (
+                        article.publish_date
+                        and article.publish_date.date() > pd.to_datetime(target_date).date()
+                    ):
+                        article_data.append({
+                            'title': article.title,
+                            'body': article.text,
+                            'author': article.authors if article.authors else "No author found",
+                            'publish_date': article.publish_date.strftime('%Y-%m-%d')
+                        })
+                    break
+                else:
+                    break
+            except ArticleException as ae:
+                retry_count += 1
+                time.sleep(2)
+                continue
+            except Exception as e:
+                break
+
+        if not article_data:
+            return None
+        return article_data
+
+    def get_gemini_response(prompt):
+        genai.configure(api_key=google_api_key)
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        return response.text
+
+    try:
+        # Fetch news from Bing
+        headers = {"Ocp-Apim-Subscription-Key": bing_subscription_key}
+        params = {"q": search_term}
+        response = requests.get(search_url, headers=headers, params=params)
+        response.raise_for_status()
+        search_results = json.loads(response.text)
+
+        news_items = []
+        for article in search_results["value"]:
+            scraped_data = scrape_article(article["url"], target_date)
+            if scraped_data:
+                for item in scraped_data:
+                    prompt = f"Your task is to generate a 50-word summary for the following news: Title: {item['title']} Body:{item['body']}"
+                    summary = get_gemini_response(prompt)
+                    item['summary'] = summary
+                news_items.extend(scraped_data)
+            else:
+                # If scraping failed, use basic info from Bing API and summarize the description
+                basic_info = {
+                    "title": article.get("name", "No title"),
+                    "body": article.get("description", "No description"),
+                    "url": article["url"],
+                    "publish_date": article.get("datePublished", "Unknown date")
+                }
+                prompt = f"Your task is to generate a 50-word summary for the following news: Title: {basic_info['title']} Body:{basic_info['body']}"
+                summary = get_gemini_response(prompt)
+                basic_info['summary'] = summary
+                news_items.append(basic_info)
+
+        return context.res.json({
+            'success': True,
+            'news_items': news_items
+        })
+
+    except requests.exceptions.RequestException as e:
+        return context.res.json({
+            'success': False,
+            'error': f'Error fetching news: {str(e)}'
+        }, 500)
+    except KeyError as e:
+        return context.res.json({
+            'success': False,
+            'error': f'Error parsing response: {str(e)}'
+        }, 500)
+    except Exception as e:
+        return context.res.json({
+            'success': False,
+            'error': f'An unexpected error occurred: {str(e)}'
+        }, 500)
