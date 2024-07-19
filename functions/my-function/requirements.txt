@@ -2,4 +2,7 @@ newspaper3k
 langdetect
 appwrite
 google-generativeai
-pandas 
+pandas
+lxml[html_clean]
+requests
+python-dateutil
