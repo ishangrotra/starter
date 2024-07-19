@@ -1,9 +1,9 @@
-newspaper3k
+newspaper3k==0.2.8
+lxml==4.6.3
 langdetect
 appwrite
 google-generativeai
 pandas
-lxml_html_clean
 requests
 python-dateutil
 cssselect
