@@ -103,23 +103,23 @@ def main(context):
                 basic_info['summary'] = summary
                 news_items.append(basic_info)
 
-        return context.res.json({
+        return {
             'success': True,
             'news_items': news_items
-        })
+        }
 
     except requests.exceptions.RequestException as e:
-        return context.res.json({
+        return {
             'success': False,
             'error': f'Error fetching news: {str(e)}'
-        }, 500)
+        }
     except KeyError as e:
-        return context.res.json({
+        return {
             'success': False,
             'error': f'Error parsing response: {str(e)}'
-        }, 500)
+        }
     except Exception as e:
-        return context.res.json({
+        return {
             'success': False,
             'error': f'An unexpected error occurred: {str(e)}'
-        }, 500)
+        }
