@@ -11,7 +11,20 @@ import json
 from appwrite.client import Client
 from appwrite.services.functions import Functions
 
-def main(context, res):
+class ResponseWrapper:
+    def __init__(self, context):
+        self.context = context
+
+    def send(self, body, status, headers=None):
+        self.context.res.send(body, status, headers)
+        return body
+
+    def json(self, body, status=200):
+        return self.context.res.json(body, status)
+
+def main(context):
+    res = ResponseWrapper(context)
+
     # Handle GET request
     if context.req.method == "GET":
         return res.send(
