@@ -10,6 +10,8 @@ import json
 import google.generativeai as genai
 from appwrite.client import Client
 from appwrite.services.functions import Functions
+from datetime import date, time, timedelta
+
 
 def main(context):
     # Initialize Appwrite client
