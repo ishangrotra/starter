@@ -11,20 +11,20 @@ import json
 from appwrite.client import Client
 from appwrite.services.functions import Functions
 
-def main(req, res):
+def main(context):
     # Initialize Appwrite client
     client = Client()
-    client.set_endpoint(req.env.get('APPWRITE_ENDPOINT'))
-    client.set_project(req.env.get('APPWRITE_PROJECT_ID'))
-    client.set_key(req.env.get('APPWRITE_API_KEY'))
+    client.set_endpoint(context.env.get('APPWRITE_ENDPOINT'))
+    client.set_project(context.env.get('APPWRITE_PROJECT_ID'))
+    client.set_key(context.env.get('APPWRITE_API_KEY'))
 
     # Configuration
-    bing_subscription_key = req.env.get('BING_SUBSCRIPTION_KEY')
-    google_api_key = req.env.get('GOOGLE_API_KEY')
+    bing_subscription_key = context.env.get('BING_SUBSCRIPTION_KEY')
+    google_api_key = context.env.get('GOOGLE_API_KEY')
     search_url = "https://api.bing.microsoft.com/v7.0/news/search"
     
     # Get parameters from request
-    data = json.loads(req.payload)
+    data = json.loads(context.req.payload)
     search_term = data.get('search_term', 'Microsoft')
     target_date = data.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
 
@@ -103,23 +103,23 @@ def main(req, res):
                 basic_info['summary'] = summary
                 news_items.append(basic_info)
 
-        return res.json({
+        return context.res.json({
             'success': True,
             'news_items': news_items
         })
 
     except requests.exceptions.RequestException as e:
-        return res.json({
+        return context.res.json({
             'success': False,
             'error': f'Error fetching news: {str(e)}'
         }, 500)
     except KeyError as e:
-        return res.json({
+        return context.res.json({
             'success': False,
             'error': f'Error parsing response: {str(e)}'
         }, 500)
     except Exception as e:
-        return res.json({
+        return context.res.json({
             'success': False,
             'error': f'An unexpected error occurred: {str(e)}'
         }, 500)
