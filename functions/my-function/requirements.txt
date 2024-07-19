@@ -3,7 +3,7 @@ langdetect
 appwrite
 google-generativeai
 pandas
-lxml
+lxml_html_clean
 requests
 python-dateutil
 cssselect
