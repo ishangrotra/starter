@@ -11,7 +11,7 @@ import json
 from appwrite.client import Client
 from appwrite.services.functions import Functions
 
-def main(context):
+def main(context, res):
     # Initialize Appwrite client
     client = Client()
     client.set_endpoint(context.env.get('APPWRITE_ENDPOINT'))
@@ -103,23 +103,23 @@ def main(context):
                 basic_info['summary'] = summary
                 news_items.append(basic_info)
 
-        return {
+        return res.json({
             'success': True,
             'news_items': news_items
-        }
+        })
 
     except requests.exceptions.RequestException as e:
-        return {
+        return res.json({
             'success': False,
             'error': f'Error fetching news: {str(e)}'
-        }
+        }, 500)
     except KeyError as e:
-        return {
+        return res.json({
             'success': False,
             'error': f'Error parsing response: {str(e)}'
-        }
+        }, 500)
     except Exception as e:
-        return {
+        return res.json({
             'success': False,
             'error': f'An unexpected error occurred: {str(e)}'
-        }
+        }, 500)
