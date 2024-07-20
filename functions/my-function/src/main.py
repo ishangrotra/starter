@@ -20,6 +20,7 @@ def main(context):
         )
 
     # Implement throw_if_missing functionality directly
+    print("Received body:", context.req.body)
     try:
         body = json.loads(context.req.body) if isinstance(context.req.body, str) else context.req.body
         search_term = body["search_term"]
