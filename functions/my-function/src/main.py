@@ -1,4 +1,3 @@
-import tensorflow as tf
 import numpy as np
 from .utils import get_static_file, throw_if_missing
 import google.generativeai as genai
