@@ -20,13 +20,13 @@ def main(context):
         )
 
     # Implement throw_if_missing functionality directly
-    required_fields = ["search_term", "target_date"]
-    for field in required_fields:
-        if field not in context.req.body:
-            return context.res.json({"ok": False, "error": f"Missing required field: {field}"}, 400)
-
-    search_term = context.req.body["search_term"]
-    target_date = context.req.body["target_date"]
+    try:
+        body = json.loads(context.req.body) if isinstance(context.req.body, str) else context.req.body
+        search_term = body["search_term"]
+        target_date = body["target_date"]
+    except (json.JSONDecodeError, KeyError) as e:
+        return context.res.json({"ok": False, "error": f"Invalid request body: {str(e)}"}, 400)
+    
 
     # Configuration
     # bing_subscription_key = context.env.get('a04bdca342a948669e9a2c2a1b9d2a83')
