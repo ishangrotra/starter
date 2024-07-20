@@ -29,8 +29,8 @@ def main(context):
     target_date = context.req.body["target_date"]
 
     # Configuration
-    bing_subscription_key = context.env.get('BING_SUBSCRIPTION_KEY')
-    google_api_key = context.env.get('GOOGLE_API_KEY')
+    bing_subscription_key = context.env.get('a04bdca342a948669e9a2c2a1b9d2a83')
+    google_api_key = context.env.get('AIzaSyC4D2itDTFx27b6BuewuF3W3cPXgG856q4')
     search_url = "https://api.bing.microsoft.com/v7.0/news/search"
 
     def scrape_article(url, target_date, max_retries=2):
