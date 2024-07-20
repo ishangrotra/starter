@@ -1,3 +1,6 @@
+import tensorflow as tf
+import numpy as np
+from .utils import get_static_file, throw_if_missing
 import google.generativeai as genai
 import os
 import time
@@ -8,36 +11,27 @@ from langdetect import detect
 import pandas as pd
 import requests
 import json
-from appwrite.client import Client
-from appwrite.services.functions import Functions
 
-def main(req, res):
-    # Initialize Appwrite client
-    client = Client()
-    client.set_endpoint(req.env.get('APPWRITE_ENDPOINT'))
-    client.set_project(req.env.get('APPWRITE_PROJECT_ID'))
-    client.set_key(req.env.get('APPWRITE_API_KEY'))
+def main(context):
+    if context.req.method == "GET":
+        return context.res.send(
+            get_static_file("index.html"),
+            200,
+            {"content-type": "text/html; charset=utf-8"},
+        )
+
+    try:
+        throw_if_missing(context.req.body, ["search_term", "target_date"])
+    except ValueError as err:
+        return context.res.json({"ok": False, "error": str(err)}, 400)
+
+    search_term = context.req.body["search_term"]
+    target_date = context.req.body["target_date"]
 
     # Configuration
-    bing_subscription_key = req.env.get('BING_SUBSCRIPTION_KEY')
-    google_api_key = req.env.get('GOOGLE_API_KEY')
+    bing_subscription_key = context.env.get('BING_SUBSCRIPTION_KEY')
+    google_api_key = context.env.get('GOOGLE_API_KEY')
     search_url = "https://api.bing.microsoft.com/v7.0/news/search"
-    
-    # Handle GET and POST requests
-    if req.method == 'GET':
-        # For GET requests, use query parameters
-        search_term = req.query.get('search_term', 'Microsoft')
-        target_date = req.query.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
-    elif req.method == 'POST':
-        # For POST requests, use the payload
-        data = req.payload
-        search_term = data.get('search_term', 'Microsoft')
-        target_date = data.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
-    else:
-        return res.json({
-            'success': False,
-            'error': 'Unsupported HTTP method'
-        }, 405)
 
     def scrape_article(url, target_date, max_retries=2):
         retry_count = 0
@@ -114,23 +108,11 @@ def main(req, res):
                 basic_info['summary'] = summary
                 news_items.append(basic_info)
 
-        return res.json({
-            'success': True,
-            'news_items': news_items
-        })
+        return context.res.json({"ok": True, "news_items": news_items}, 200)
 
     except requests.exceptions.RequestException as e:
-        return res.json({
-            'success': False,
-            'error': f'Error fetching news: {str(e)}'
-        }, 500)
+        return context.res.json({"ok": False, "error": f"Error fetching news: {str(e)}"}, 500)
     except KeyError as e:
-        return res.json({
-            'success': False,
-            'error': f'Error parsing response: {str(e)}'
-        }, 500)
+        return context.res.json({"ok": False, "error": f"Error parsing response: {str(e)}"}, 500)
     except Exception as e:
-        return res.json({
-            'success': False,
-            'error': f'An unexpected error occurred: {str(e)}'
-        }, 500)
+        return context.res.json({"ok": False, "error": f"An unexpected error occurred: {str(e)}"}, 500)
