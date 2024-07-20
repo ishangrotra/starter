@@ -29,8 +29,8 @@ def main(context):
     target_date = context.req.body["target_date"]
 
     # Configuration
-    bing_subscription_key = context.env.get('a04bdca342a948669e9a2c2a1b9d2a83')
-    google_api_key = context.env.get('AIzaSyC4D2itDTFx27b6BuewuF3W3cPXgG856q4')
+    # bing_subscription_key = context.env.get('a04bdca342a948669e9a2c2a1b9d2a83')
+    # google_api_key = context.env.get('AIzaSyC4D2itDTFx27b6BuewuF3W3cPXgG856q4')
     search_url = "https://api.bing.microsoft.com/v7.0/news/search"
 
     def scrape_article(url, target_date, max_retries=2):
@@ -73,14 +73,14 @@ def main(context):
         return article_data
 
     def get_gemini_response(prompt):
-        genai.configure(api_key=google_api_key)
+        genai.configure(api_key='AIzaSyC4D2itDTFx27b6BuewuF3W3cPXgG856q4')
         model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
         return response.text
 
     try:
         # Fetch news from Bing
-        headers = {"Ocp-Apim-Subscription-Key": bing_subscription_key}
+        headers = {"Ocp-Apim-Subscription-Key": 'a04bdca342a948669e9a2c2a1b9d2a83'}
         params = {"q": search_term}
         response = requests.get(search_url, headers=headers, params=params)
         response.raise_for_status()
