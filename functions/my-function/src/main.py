@@ -1,5 +1,4 @@
 import numpy as np
-from .utils import get_static_file, throw_if_missing
 import google.generativeai as genai
 import os
 import time
@@ -13,16 +12,18 @@ import json
 
 def main(context):
     if context.req.method == "GET":
+        # Since we can't use get_static_file, we'll return a simple message
         return context.res.send(
-            get_static_file("index.html"),
+            "<html><body><h1>Welcome to the News Search API</h1></body></html>",
             200,
             {"content-type": "text/html; charset=utf-8"},
         )
 
-    try:
-        throw_if_missing(context.req.body, ["search_term", "target_date"])
-    except ValueError as err:
-        return context.res.json({"ok": False, "error": str(err)}, 400)
+    # Implement throw_if_missing functionality directly
+    required_fields = ["search_term", "target_date"]
+    for field in required_fields:
+        if field not in context.req.body:
+            return context.res.json({"ok": False, "error": f"Missing required field: {field}"}, 400)
 
     search_term = context.req.body["search_term"]
     target_date = context.req.body["target_date"]
