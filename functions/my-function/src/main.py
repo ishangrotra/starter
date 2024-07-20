@@ -23,10 +23,21 @@ def main(req, res):
     google_api_key = req.env.get('GOOGLE_API_KEY')
     search_url = "https://api.bing.microsoft.com/v7.0/news/search"
     
-    # Get parameters from request
-    data = req.payload
-    search_term = data.get('search_term', 'Microsoft')
-    target_date = data.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
+    # Handle GET and POST requests
+    if req.method == 'GET':
+        # For GET requests, use query parameters
+        search_term = req.query.get('search_term', 'Microsoft')
+        target_date = req.query.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
+    elif req.method == 'POST':
+        # For POST requests, use the payload
+        data = req.payload
+        search_term = data.get('search_term', 'Microsoft')
+        target_date = data.get('target_date', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
+    else:
+        return res.json({
+            'success': False,
+            'error': 'Unsupported HTTP method'
+        }, 405)
 
     def scrape_article(url, target_date, max_retries=2):
         retry_count = 0
